@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import time
+from datetime import datetime
 import telegram
 from bme280 import BME280
 
@@ -42,6 +43,8 @@ def get_cpu_temperature():
 factor = 2.25
 
 cpu_temps = [get_cpu_temperature()] * 5
+last_max=datetime.now()
+TEN_MINUTES=10*60
 
 while True:
     cpu_temp = get_cpu_temperature()
@@ -51,8 +54,10 @@ while True:
     raw_temp = bme280.get_temperature()
     comp_temp = raw_temp - ((avg_cpu_temp - raw_temp) / factor)
     if comp_temp > 25:
-        telegram.send_message("ALERT:{:05.2f} *C".format(comp_temp))
-        logging.info("Sent alert")
-        break
+        duration = datetime.now()-last_max
+        if duration.total_seconds() > TEN_MINUTES:
+            telegram.send_message("ALERT:{:05.2f} C".format(comp_temp))
+            logging.info("Sent alert")
+            last_max=datetime.now()
     logging.info("Compensated temperature: {:05.2f} *C".format(comp_temp))
     time.sleep(1.0)
